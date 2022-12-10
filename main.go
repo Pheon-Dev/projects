@@ -119,6 +119,11 @@ func main() {
 		},
 		item{title: "moc", description: "MOCP Config", path: ".moc"},
 		item{
+			title:       "projects",
+			description: "p App",
+			path:        "Documents/go/src/github.com/Pheon-Dev/p",
+		},
+		item{
 			title:       "go",
 			description: "GO Projects",
 			path:        "Documents/go/src/github.com/Pheon-Dev",
@@ -135,7 +140,7 @@ func main() {
 		},
 	}
 	m := model{list: list.New(items, list.NewDefaultDelegate(), 0, 0)}
-	if _, err := tea.NewProgram(m).Run(); err != nil {
+	if _, err := tea.NewProgram(m, tea.WithAltScreen()).Run(); err != nil {
 		fmt.Println("Error Running Program : ", err)
 		os.Exit(1)
 	}
