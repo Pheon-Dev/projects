@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 
@@ -47,12 +46,9 @@ func openEditor(path string) tea.Cmd {
 	c.Stdout = os.Stdout
 	c.Stderr = os.Stderr
 
-	err := c.Run()
-	if err != nil {
-		log.Fatal(err)
-	}
-	os.Exit(0)
-	return nil
+	return tea.ExecProcess(c, func(err error) tea.Msg {
+		return editorFinishedMsg{err}
+	})
 }
 
 func (m model) Init() tea.Cmd {
@@ -67,23 +63,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "h":
+		case "h", "q", "escape":
 			m.quitting = true
 			return m, tea.Quit
-		case "l":
+		case "l", "enter":
 			i, ok := m.list.SelectedItem().(item)
 			if ok {
 				m.choice = string(i.title)
 				m.path = string(i.path)
 			}
 			return m, openEditor(m.path)
-		case "enter":
-			i, ok := m.list.SelectedItem().(item)
-			if ok {
-				m.choice = string(i.title)
-				m.path = string(i.path)
-			}
-			return m, tea.Quit
 		}
 
 	}
@@ -105,44 +94,44 @@ func (m model) View() string {
 func main() {
 	items := []list.Item{
 		item{title: "nvim", description: "NEOVIM Config", path: ".config/nvim"},
-		item{title: "dwm", description: "DWM Config", path: "cd $HOME/.config/dwm && nvim"},
-		item{title: "zsh", description: "ZSH Config", path: "cd $HOME/.config/zsh && nvim"},
-		item{title: "tmux", description: "TMUX Config", path: "cd $HOME/.tmux && nvim"},
+		item{title: "dwm", description: "DWM Config", path: ".config/arco-dwm"},
+		item{title: "zsh", description: "ZSH Config", path: ".config/zsh"},
+		item{title: "tmux", description: "TMUX Config", path: ".tmux"},
 		item{
 			title:       "st",
 			description: "Simple Terminal (ST) Config",
-			path:        "cd $HOME/.config/st && nvim",
+			path:        ".config/arco-st",
 		},
 		item{
 			title:       "lazygit",
 			description: "Lazygit Config",
-			path:        "cd $HOME/.config/lazygit && nvim",
+			path:        ".config/lazygit",
 		},
 		item{
 			title:       "ranger",
 			description: "Ranger Config",
-			path:        "cd $HOME/.config/ranger && nvim",
+			path:        ".config/ranger",
 		},
 		item{
 			title:       "fm",
 			description: "File Manager (FM) Config",
-			path:        "cd $HOME/.config/fm && nvim",
+			path:        ".config/fm",
 		},
-		item{title: "moc", description: "MOCP Config", path: "cd $HOME/.moc && nvim && nvim"},
+		item{title: "moc", description: "MOCP Config", path: ".moc"},
 		item{
 			title:       "go",
 			description: "GO Projects",
-			path:        "cd $HOME/Documents/go/src/github.com/Pheon-Dev && nvim",
+			path:        "Documents/go/src/github.com/Pheon-Dev",
 		},
 		item{
 			title:       "go-git",
 			description: "GO Git Projects",
-			path:        "cd $HOME/Documents/go/git && nvim",
+			path:        "Documents/go/git",
 		},
 		item{
 			title:       "typescript",
 			description: "TypeScript Projects",
-			path:        "cd $HOME/Documents/NextJS/App && nvim",
+			path:        "Documents/NextJS/App",
 		},
 	}
 	m := model{list: list.New(items, list.NewDefaultDelegate(), 0, 0)}
