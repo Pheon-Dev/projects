@@ -2,176 +2,151 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
+	"log"
 	"os"
-	"time"
+	"os/exec"
 
-	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
 var (
-	appStyle = lipgloss.NewStyle().Padding(1, 2)
-
-	titleStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#c0caf5")).
-			Background(lipgloss.Color("#bd93f9")).
-			Padding(0, 1)
-
-	statusMessageStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.AdaptiveColor{Light: "#50fa7b", Dark: "#50fa7b"}).Render
+	docStyle      = lipgloss.NewStyle().Padding(1, 2)
+	quitTextStyle = lipgloss.NewStyle().Padding(1, 2)
 )
 
 type item struct {
 	title       string
+	path        string
 	description string
 }
 
-type listKeyMap struct {
-	toggleSpinner    key.Binding
-	toggleTitleBar   key.Binding
-	toggleStatusBar  key.Binding
-	togglePagination key.Binding
-	toggleHelpMenu   key.Binding
-	insertItem       key.Binding
+type model struct {
+	list     list.Model
+	choice   string
+	path     string
+	quitting bool
 }
 
-type model struct {
-	list          list.Model
-	itemGenerator *randomItemGenerator
-	keys          *listKeyMap
-	delegateKeys  *delegateKeyMap
-}
+type editorFinishedMsg struct{ err error }
 
 func (i item) Title() string       { return i.title }
 func (i item) Description() string { return i.description }
 func (i item) FilterValue() string { return i.title }
 
-func newListKeyMap() *listKeyMap {
-	return &listKeyMap{
-		insertItem: key.NewBinding(
-			key.WithKeys("a"),
-			key.WithHelp("a", "add item"),
-		),
-		toggleSpinner: key.NewBinding(
-			key.WithKeys("s"),
-			key.WithHelp("s", "toggle spinner"),
-		),
-		toggleTitleBar: key.NewBinding(
-			key.WithKeys("T"),
-			key.WithHelp("T", "toggle title bar"),
-		),
-		toggleStatusBar: key.NewBinding(
-			key.WithKeys("S"),
-			key.WithHelp("S", "toggle status bar"),
-		),
-		togglePagination: key.NewBinding(
-			key.WithKeys("P"),
-			key.WithHelp("P", "toggle pagination"),
-		),
-		toggleHelpMenu: key.NewBinding(
-			key.WithKeys("H"),
-			key.WithHelp("H", "toggle help"),
-		),
-	}
-}
-
-func newModel() model {
-	var (
-		itemGenerator randomItemGenerator
-		delegateKeys  = newDelegateKeyMap()
-		listKeys      = newListKeyMap()
-	)
-
-	const numItems = 24
-	items := make([]list.Item, numItems)
-	for i := 0; i < numItems; i++ {
-		items[i] = itemGenerator.next()
+func openEditor(path string) tea.Cmd {
+	home := os.Getenv("HOME")
+	editor := os.Getenv("EDITOR")
+	if editor == "" {
+		editor = "vim"
 	}
 
-	delegate := newItemDelegate(delegateKeys)
-	itemsList := list.New(items, delegate, 0, 0)
-	itemsList.Title = "items"
-	itemsList.Styles.Title = titleStyle
-	itemsList.AdditionalFullHelpKeys = func() []key.Binding {
-		return []key.Binding{
-			listKeys.toggleSpinner,
-			listKeys.insertItem,
-			listKeys.toggleTitleBar,
-			listKeys.toggleStatusBar,
-			listKeys.togglePagination,
-			listKeys.toggleHelpMenu,
-		}
+	c := exec.Command("bash", "-c", "clear && cd "+home+"/"+path+" && "+editor)
+	c.Stdin = os.Stdin
+	c.Stdout = os.Stdout
+	c.Stderr = os.Stderr
+
+	err := c.Run()
+	if err != nil {
+		log.Fatal(err)
 	}
-	return model{
-		list:          itemsList,
-		keys:          listKeys,
-		delegateKeys:  delegateKeys,
-		itemGenerator: &itemGenerator,
-	}
+	os.Exit(0)
+	return nil
 }
 
 func (m model) Init() tea.Cmd {
-	return tea.EnterAltScreen
+	return nil
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmds []tea.Cmd
-
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		h, v := appStyle.GetFrameSize()
+		h, v := docStyle.GetFrameSize()
 		m.list.SetSize(msg.Width-h, msg.Height-v)
 
 	case tea.KeyMsg:
-		if m.list.FilterState() == list.Filtering {
-			break
+		switch msg.String() {
+		case "h":
+			m.quitting = true
+			return m, tea.Quit
+		case "l":
+			i, ok := m.list.SelectedItem().(item)
+			if ok {
+				m.choice = string(i.title)
+				m.path = string(i.path)
+			}
+			return m, openEditor(m.path)
+		case "enter":
+			i, ok := m.list.SelectedItem().(item)
+			if ok {
+				m.choice = string(i.title)
+				m.path = string(i.path)
+			}
+			return m, tea.Quit
 		}
 
-		switch {
-		case key.Matches(msg, m.keys.toggleSpinner):
-			cmd := m.list.ToggleSpinner()
-			return m, cmd
-		case key.Matches(msg, m.keys.toggleTitleBar):
-			v := !m.list.ShowTitle()
-			m.list.SetShowTitle(v)
-			m.list.SetShowFilter(v)
-			m.list.SetFilteringEnabled(v)
-			return m, nil
-		case key.Matches(msg, m.keys.toggleStatusBar):
-			m.list.SetShowStatusBar(!m.list.ShowStatusBar())
-			return m, nil
-		case key.Matches(msg, m.keys.togglePagination):
-			m.list.SetShowPagination(!m.list.ShowPagination())
-			return m, nil
-		case key.Matches(msg, m.keys.toggleHelpMenu):
-			m.list.SetShowHelp(!m.list.ShowHelp())
-			return m, nil
-		case key.Matches(msg, m.keys.insertItem):
-			m.delegateKeys.remove.SetEnabled(true)
-			newItem := m.itemGenerator.next()
-			insCmd := m.list.InsertItem(0, newItem)
-			statusCmd := m.list.NewStatusMessage(statusMessageStyle("Added" + newItem.Title()))
-			return m, tea.Batch(insCmd, statusCmd)
-		}
 	}
-
-	newListModel, cmd := m.list.Update(msg)
-	m.list = newListModel
-	cmds = append(cmds, cmd)
-
-	return m, tea.Batch(cmds...)
+	var cmd tea.Cmd
+	m.list, cmd = m.list.Update(msg)
+	return m, cmd
 }
 
 func (m model) View() string {
-	return appStyle.Render(m.list.View())
+	if m.choice != "" {
+		return quitTextStyle.Render(fmt.Sprintf("%s? Sounds good to me.", m.choice))
+	}
+	if m.quitting {
+		return quitTextStyle.Render("Not hungry? That’s cool.")
+	}
+	return "\n" + m.list.View()
 }
 
 func main() {
-	rand.Seed(time.Now().UTC().UnixNano())
-	if _, err := tea.NewProgram(newModel()).Run(); err != nil {
+	items := []list.Item{
+		item{title: "nvim", description: "NEOVIM Config", path: ".config/nvim"},
+		item{title: "dwm", description: "DWM Config", path: "cd $HOME/.config/dwm && nvim"},
+		item{title: "zsh", description: "ZSH Config", path: "cd $HOME/.config/zsh && nvim"},
+		item{title: "tmux", description: "TMUX Config", path: "cd $HOME/.tmux && nvim"},
+		item{
+			title:       "st",
+			description: "Simple Terminal (ST) Config",
+			path:        "cd $HOME/.config/st && nvim",
+		},
+		item{
+			title:       "lazygit",
+			description: "Lazygit Config",
+			path:        "cd $HOME/.config/lazygit && nvim",
+		},
+		item{
+			title:       "ranger",
+			description: "Ranger Config",
+			path:        "cd $HOME/.config/ranger && nvim",
+		},
+		item{
+			title:       "fm",
+			description: "File Manager (FM) Config",
+			path:        "cd $HOME/.config/fm && nvim",
+		},
+		item{title: "moc", description: "MOCP Config", path: "cd $HOME/.moc && nvim && nvim"},
+		item{
+			title:       "go",
+			description: "GO Projects",
+			path:        "cd $HOME/Documents/go/src/github.com/Pheon-Dev && nvim",
+		},
+		item{
+			title:       "go-git",
+			description: "GO Git Projects",
+			path:        "cd $HOME/Documents/go/git && nvim",
+		},
+		item{
+			title:       "typescript",
+			description: "TypeScript Projects",
+			path:        "cd $HOME/Documents/NextJS/App && nvim",
+		},
+	}
+	m := model{list: list.New(items, list.NewDefaultDelegate(), 0, 0)}
+	if _, err := tea.NewProgram(m).Run(); err != nil {
 		fmt.Println("Error Running Program : ", err)
 		os.Exit(1)
 	}
