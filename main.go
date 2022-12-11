@@ -69,9 +69,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "h", "q", "escape":
+		case "q", "escape":
 			return m, tea.Quit
-		case "l", "enter":
+		case " ", "enter":
 			i, ok := m.list.SelectedItem().(item)
 			if ok {
 				m.choice = string(i.title)
@@ -105,8 +105,9 @@ func main() {
 	title := vp.GetString("title")
 	statusbar := vp.GetBool("status-bar")
 	filtering := vp.GetBool("filtering")
+	// prjcts := vp.Get("projects")
 
-	items := []list.Item{
+	projects := []list.Item{
 		item{title: "nvim", description: "~/.config/nvim", path: ".config/nvim"},
 		item{title: "dwm", description: "~/.config/arco-dwm", path: ".config/arco-dwm"},
 		item{title: "zsh", description: "~/.config/zsh", path: ".config/zsh"},
@@ -147,7 +148,7 @@ func main() {
 		item{
 			title:       "bubbletea",
 			description: "~/Documents/go/git/bubbletea/examples",
-			path:        "Documents/go/git",
+			path:        "Documents/go/git/bubbletea/examples",
 		},
 		item{
 			title:       "go apps",
@@ -164,10 +165,10 @@ func main() {
 	// vp.Set("title", "Configs")
 	// vp.Set("status-bar", true)
 	// vp.Set("filtering", true)
-	// vp.Set("items", items)
+	// vp.Set("projects", projects)
 	// vp.WriteConfig()
 
-	l := list.New(items, list.NewDefaultDelegate(), 0, 0)
+	l := list.New(projects, list.NewDefaultDelegate(), 0, 0)
 	l.Title = title
 	l.SetShowStatusBar(statusbar)
 	l.SetFilteringEnabled(filtering)
