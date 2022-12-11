@@ -22,10 +22,9 @@ type item struct {
 }
 
 type model struct {
-	list     list.Model
-	choice   string
-	path     string
-	quitting bool
+	list   list.Model
+	choice string
+	path   string
 }
 
 type editorFinishedMsg struct{ err error }
@@ -64,7 +63,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "h", "q", "escape":
-			m.quitting = true
 			return m, tea.Quit
 		case "l", "enter":
 			i, ok := m.list.SelectedItem().(item)
@@ -82,12 +80,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
-	if m.choice != "" {
-		return quitTextStyle.Render(fmt.Sprintf("%s? Sounds good to me.", m.choice))
-	}
-	if m.quitting {
-		return quitTextStyle.Render("Not hungry? That’s cool.")
-	}
 	return "\n" + m.list.View()
 }
 
@@ -96,6 +88,8 @@ func main() {
 		item{title: "nvim", description: "NEOVIM Config", path: ".config/nvim"},
 		item{title: "dwm", description: "DWM Config", path: ".config/arco-dwm"},
 		item{title: "zsh", description: "ZSH Config", path: ".config/zsh"},
+		item{title: "dmenu", description: "DMENU Config", path: ".config/dmenu"},
+		item{title: "btop", description: "BTOP Config", path: ".config/btop"},
 		item{title: "tmux", description: "TMUX Config", path: ".tmux"},
 		item{
 			title:       "st",
