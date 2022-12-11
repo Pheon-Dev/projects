@@ -1,5 +1,5 @@
 # Quick Projects & Configuration Files Navigator
-
+![p](https://github.com/Pheon-Dev/projects/blob/main/p.gif)
 ## Configuration file
 
 ```bash
