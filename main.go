@@ -8,11 +8,17 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/spf13/viper"
 )
 
 var (
 	docStyle      = lipgloss.NewStyle().Padding(1, 2)
 	quitTextStyle = lipgloss.NewStyle().Padding(1, 2)
+	titleStyle    = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#c0caf5")).
+			Background(lipgloss.Color("#536c9e")).
+			Padding(0, 1)
+	itemStyle = lipgloss.NewStyle().PaddingLeft(2)
 )
 
 type item struct {
@@ -31,6 +37,7 @@ type editorFinishedMsg struct{ err error }
 
 func (i item) Title() string       { return i.title }
 func (i item) Description() string { return i.description }
+func (i item) Path() string        { return i.path }
 func (i item) FilterValue() string { return i.title }
 
 func openEditor(path string) tea.Cmd {
@@ -84,56 +91,89 @@ func (m model) View() string {
 }
 
 func main() {
+	vp := viper.New()
+
+	vp.SetConfigName("config")
+	vp.SetConfigType("yaml")
+	vp.AddConfigPath("$HOME/.config/p")
+
+	err := vp.ReadInConfig()
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	title := vp.GetString("title")
+	statusbar := vp.GetBool("status-bar")
+	filtering := vp.GetBool("filtering")
+
 	items := []list.Item{
-		item{title: "nvim", description: "NEOVIM Config", path: ".config/nvim"},
-		item{title: "dwm", description: "DWM Config", path: ".config/arco-dwm"},
-		item{title: "zsh", description: "ZSH Config", path: ".config/zsh"},
-		item{title: "dmenu", description: "DMENU Config", path: ".config/dmenu"},
-		item{title: "btop", description: "BTOP Config", path: ".config/btop"},
-		item{title: "tmux", description: "TMUX Config", path: ".tmux"},
+		item{title: "nvim", description: "~/.config/nvim", path: ".config/nvim"},
+		item{title: "dwm", description: "~/.config/arco-dwm", path: ".config/arco-dwm"},
+		item{title: "zsh", description: "~/.config/zsh", path: ".config/zsh"},
+		item{title: "dmenu", description: "~/.config/dmenu", path: ".config/dmenu"},
+		item{title: "btop", description: "~/.config/btop", path: ".config/btop"},
+		item{title: "tmux", description: "~/.tmux", path: ".tmux"},
 		item{
-			title:       "st",
-			description: "Simple Terminal (ST) Config",
+			title:       "st Simple Terminal",
+			description: "~/.config/arco-st",
 			path:        ".config/arco-st",
 		},
 		item{
 			title:       "lazygit",
-			description: "Lazygit Config",
+			description: "~/.config/lazygit",
 			path:        ".config/lazygit",
 		},
 		item{
 			title:       "ranger",
-			description: "Ranger Config",
+			description: "~/.config/ranger",
 			path:        ".config/ranger",
 		},
 		item{
-			title:       "fm",
-			description: "File Manager (FM) Config",
+			title:       "fm file manager",
+			description: "~/.config/fm",
 			path:        ".config/fm",
 		},
-		item{title: "moc", description: "MOCP Config", path: ".moc"},
+		item{title: "moc", description: "~/.moc", path: ".moc"},
 		item{
-			title:       "projects",
-			description: "p App",
+			title:       "p app",
+			description: "~/Documents/go/src/github.com/Pheon-Dev/p",
 			path:        "Documents/go/src/github.com/Pheon-Dev/p",
 		},
 		item{
 			title:       "go",
-			description: "GO Projects",
+			description: "~/Documents/go/src/github.com/Pheon-Dev",
 			path:        "Documents/go/src/github.com/Pheon-Dev",
 		},
 		item{
-			title:       "go-git",
-			description: "GO Git Projects",
+			title:       "bubbletea",
+			description: "~/Documents/go/git/bubbletea/examples",
+			path:        "Documents/go/git",
+		},
+		item{
+			title:       "go apps",
+			description: "~/Documents/go/git",
 			path:        "Documents/go/git",
 		},
 		item{
 			title:       "typescript",
-			description: "TypeScript Projects",
+			description: "~/Documents/NextJS/App",
 			path:        "Documents/NextJS/App",
 		},
 	}
-	m := model{list: list.New(items, list.NewDefaultDelegate(), 0, 0)}
+
+	// vp.Set("title", "Configs")
+	// vp.Set("status-bar", true)
+	// vp.Set("filtering", true)
+	// vp.Set("items", items)
+	// vp.WriteConfig()
+
+	l := list.New(items, list.NewDefaultDelegate(), 0, 0)
+	l.Title = title
+	l.SetShowStatusBar(statusbar)
+	l.SetFilteringEnabled(filtering)
+	l.Styles.Title = titleStyle
+	m := model{list: l}
+
 	if _, err := tea.NewProgram(m, tea.WithAltScreen()).Run(); err != nil {
 		fmt.Println("Error Running Program : ", err)
 		os.Exit(1)
