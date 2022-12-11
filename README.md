@@ -1,4 +1,4 @@
-# Quick Projects & Configuration Navigator
+# Quick Projects & Configuration Files Navigator
 
 ## Configuration file
 
