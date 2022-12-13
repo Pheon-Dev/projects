@@ -106,6 +106,10 @@ func main() {
 
 	projects := []list.Item{
 		item{title: "nvim", description: "$HOME/.config/nvim"},
+		item{
+			title:       "flamingo",
+			description: "$HOME/Documents/go/src/github.com/Pheon-Dev/flamingo",
+		},
 		item{title: "dwm", description: "$HOME/.config/arco-dwm"},
 		item{title: "zsh", description: "$HOME/.config/zsh"},
 		item{title: "dmenu", description: "$HOME/.config/dmenu"},
