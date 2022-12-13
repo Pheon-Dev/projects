@@ -39,7 +39,6 @@ func (i item) Description() string { return i.description }
 func (i item) FilterValue() string { return i.title }
 
 func openEditor(description string) tea.Cmd {
-	// home := os.Getenv("HOME")
 	editor := os.Getenv("EDITOR")
 	if editor == "" {
 		editor = "vim"
