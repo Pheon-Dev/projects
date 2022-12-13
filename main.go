@@ -153,6 +153,14 @@ func main() {
 			description: "$HOME/Documents/go/git",
 		},
 		item{
+			title:       "destiny",
+			description: "$HOME/Documents/NextJS/App/destiny-credit",
+		},
+		item{
+			title:       "devlen",
+			description: "$HOME/Documents/NextJS/App/devlen",
+		},
+		item{
 			title:       "typescript",
 			description: "$HOME/Documents/NextJS/App",
 		},
